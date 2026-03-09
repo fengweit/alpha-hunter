@@ -129,6 +129,11 @@ def apply_reasoning(result: dict, event_sources: list):
     if not result:
         return
 
+    # Build a map of source urls from the events batch
+    source_urls = [e["url"] for e in event_sources if e.get("url")]
+    # Pick the most relevant URL for new evidence (first non-empty)
+    primary_url = source_urls[0] if source_urls else ""
+
     # Create new theses
     for t in result.get("new_theses", []):
         try:
@@ -144,6 +149,7 @@ def apply_reasoning(result: dict, event_sources: list):
                 source="reasoning",
                 direction="for",
                 content=t["reasoning"],
+                url=primary_url,
                 weight=1.0,
             )
             log.info(f"New thesis born: [{thesis_id}] {t['name']} (conviction: {t.get('initial_conviction', 20)})")
@@ -152,7 +158,7 @@ def apply_reasoning(result: dict, event_sources: list):
 
     # Update existing thesis conviction
     all_theses = {t["id"]: t for t in get_all_theses()}
-    for update in result.get("evidence_updates", []):
+    for i, update in enumerate(result.get("evidence_updates", [])):
         try:
             thesis_id = update["thesis_id"]
             if thesis_id not in all_theses:
@@ -162,11 +168,15 @@ def apply_reasoning(result: dict, event_sources: list):
             delta = update.get("conviction_delta", 0)
             new_conviction = max(0, min(100, current + delta))
 
+            # Rotate through source URLs so each evidence piece gets a link
+            ev_url = source_urls[i % len(source_urls)] if source_urls else ""
+
             add_evidence(
                 thesis_id=thesis_id,
                 source=", ".join(set(e["source"] for e in event_sources)),
                 direction=update["direction"],
                 content=update["content"],
+                url=ev_url,
                 weight=update.get("weight", 1.0),
             )
             update_conviction(thesis_id, new_conviction, update["content"])

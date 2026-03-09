@@ -50,7 +50,7 @@ def api_theses():
 
         # Get recent evidence
         evidence = conn.execute(
-            """SELECT source, direction, content, logged_at FROM evidence
+            """SELECT source, direction, content, url, logged_at FROM evidence
                WHERE thesis_id=? ORDER BY logged_at DESC LIMIT 20""",
             (t["id"],)
         ).fetchall()
@@ -68,7 +68,8 @@ def api_theses():
             "updated_at": t["updated_at"],
             "history": [{"v": h["conviction"], "t": h["recorded_at"]} for h in history],
             "evidence": [{"src": e["source"], "dir": e["direction"],
-                         "content": e["content"][:200], "at": e["logged_at"]} for e in evidence],
+                         "content": e["content"][:200], "url": e["url"] or "",
+                         "at": e["logged_at"]} for e in evidence],
         })
 
     conn.close()
@@ -84,6 +85,20 @@ def api_events():
     ).fetchall()
     conn.close()
     return jsonify([dict(e) for e in events])
+
+
+@app.route("/api/sources")
+def api_sources():
+    """Recent source articles with URLs — what the system is reading."""
+    conn = db()
+    rows = conn.execute(
+        """SELECT source, content, url, author, received_at
+           FROM raw_events
+           WHERE url != '' AND url IS NOT NULL
+           ORDER BY received_at DESC LIMIT 60"""
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
 
 
 @app.route("/api/stats")

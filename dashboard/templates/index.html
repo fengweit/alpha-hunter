@@ -236,6 +236,14 @@
     .ev-content-col {}
     .ev-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
     .ev-time { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+    .ev-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; color: var(--blue); text-decoration: none;
+      margin-top: 4px; opacity: .7; transition: opacity .15s;
+      font-family: 'JetBrains Mono', monospace;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ev-link:hover { opacity: 1; text-decoration: underline; }
 
     /* ─── EMPTY ─── */
     .empty-state {
@@ -244,6 +252,39 @@
     }
     .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text2); }
     .empty-state p { font-size: 13px; }
+
+    /* ─── SOURCES ─── */
+    .sources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 8px;
+    }
+    .source-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      transition: border-color .15s;
+    }
+    .source-card:hover { border-color: var(--border2); }
+    .source-card a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .source-card a:hover { color: var(--blue); }
+    .source-meta {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .source-outlet {
+      font-size: 10px; color: var(--blue); font-family: 'JetBrains Mono', monospace;
+      background: rgba(96,165,250,.08); padding: 1px 6px; border-radius: 4px;
+    }
+    .source-time { font-size: 10px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
 
     /* ─── SCROLLBAR ─── */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -297,6 +338,11 @@
   <div class="thesis-grid" id="thesis-grid">
     <div class="empty-state"><h3>Loading...</h3><p>Fetching theses from the engine</p></div>
   </div>
+
+  <div class="section-label" style="margin-top:32px">Sources — what the system is reading</div>
+  <div id="sources-grid" class="sources-grid">
+    <div class="empty-state"><p>Loading sources...</p></div>
+  </div>
 </div>
 
 <script>
@@ -329,6 +375,13 @@ function ago(str) {
 
 function srcShort(src) {
   return src.replace('news:', '').replace('_search', '').slice(0, 14);
+}
+
+function hostname(url) {
+  try {
+    const h = new URL(url).hostname.replace('www.', '');
+    return h.length > 30 ? h.slice(0, 30) + '…' : h;
+  } catch { return url.slice(0, 30); }
 }
 
 function renderSpark(id, history) {
@@ -378,7 +431,10 @@ function evidenceHTML(evidence) {
       </div>
       <div class="ev-content-col">
         <div class="ev-text">${e.content}</div>
-        <div class="ev-time">${ago(e.at)}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          <span class="ev-time">${ago(e.at)}</span>
+          ${e.url ? `<a class="ev-link" href="${e.url}" target="_blank" rel="noopener">↗ ${hostname(e.url)}</a>` : ''}
+        </div>
       </div>
     </div>
   `).join('');
@@ -437,6 +493,29 @@ function cardHTML(t) {
   </div>`;
 }
 
+async function loadSources() {
+  const sources = await fetch('/api/sources').then(r => r.json());
+  const el = document.getElementById('sources-grid');
+  if (!sources.length) {
+    el.innerHTML = '<div class="empty-state"><p>No sources yet — watchers collecting...</p></div>';
+    return;
+  }
+  el.innerHTML = sources.map(s => {
+    const outlet = s.source.replace('news:', '').replace('brave_news', 'Brave Search')
+                           .replace('reddit', 'Reddit').replace('twitter', 'Twitter/X');
+    // Extract headline from content (first line)
+    const headline = s.content.split('\n')[0].slice(0, 120);
+    return `
+    <div class="source-card">
+      <a href="${s.url}" target="_blank" rel="noopener">${headline}${headline.length >= 120 ? '…' : ''}</a>
+      <div class="source-meta">
+        <span class="source-outlet">↗ ${outlet}</span>
+        <span class="source-time">${ago(s.received_at)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function refresh() {
   try {
     const [theses, stats] = await Promise.all([
@@ -460,6 +539,7 @@ async function refresh() {
       theses.forEach(t => renderSpark(`sp-${t.id}`, t.history));
     }
 
+    await loadSources();
     document.getElementById('last-update').textContent = `Updated ${new Date().toLocaleTimeString()}`;
   } catch(e) {
     console.error(e);
