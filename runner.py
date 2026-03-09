@@ -18,7 +18,7 @@ from services.database import init_db
 from services.watcher_twitter import run as twitter_run
 from services.watcher_reddit import run as reddit_run
 from services.watcher_news import run as news_run
-from services.reasoner import run as reasoner_run
+from services.deep_reasoner import run as reasoner_run
 from services.alerter import run as alerter_run, send_daily_digest
 
 # Logging setup

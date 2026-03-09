@@ -175,6 +175,23 @@
       padding: 0 20px 14px 0;
     }
 
+    /* 3-layer chain display */
+    .chain-layers { display:flex; flex-direction:column; gap:4px; margin:6px 0 10px; }
+    .chain-layer {
+      display:grid; grid-template-columns:24px 1fr;
+      gap:8px; align-items:flex-start; font-size:11px; line-height:1.5;
+    }
+    .layer-badge {
+      font-size:9px; font-weight:700; padding:1px 0; text-align:center;
+      border-radius:3px; width:22px; margin-top:1px;
+    }
+    .layer-a { background:rgba(96,165,250,.15); color:var(--blue); }
+    .layer-b { background:rgba(107,114,128,.12); color:#6b7280; text-decoration:line-through; }
+    .layer-c { background:rgba(52,211,153,.15);  color:var(--green); font-weight:600; }
+    .layer-a-text { color:var(--text2); }
+    .layer-b-text { color:#4b5563; }
+    .layer-c-text { color:var(--green); }
+
     /* Sparkline */
     .sparkline-wrap { height: 48px; padding: 0; margin-bottom: 0; }
 
@@ -500,6 +517,39 @@ function toggleEvidence(id) {
   icon.classList.toggle('open');
 }
 
+function parseChain(summary) {
+  if (!summary) return null;
+  const lines = summary.split('\n');
+  const a = lines.find(l => l.startsWith('[A]'))?.replace('[A]','').trim();
+  const b = lines.find(l => l.startsWith('[B]'))?.replace('[B]','').trim();
+  const c = lines.find(l => l.startsWith('[C]'))?.replace('[C]','').trim();
+  if (!a && !b && !c) return null;
+  return { a, b, c };
+}
+
+function chainHTML(summary) {
+  const chain = parseChain(summary);
+  if (!chain) {
+    // Fallback: plain summary
+    return `<div class="card-summary">${(summary||'').slice(0,240)}${(summary||'').length>240?'…':''}</div>`;
+  }
+  return `
+  <div class="chain-layers">
+    ${chain.a ? `<div class="chain-layer">
+      <span class="layer-badge layer-a">A</span>
+      <span class="layer-a-text">${chain.a.slice(0,120)}</span>
+    </div>` : ''}
+    ${chain.b ? `<div class="chain-layer">
+      <span class="layer-badge layer-b">B</span>
+      <span class="layer-b-text">${chain.b.slice(0,120)} <em style="color:#374151">(consensus — skip)</em></span>
+    </div>` : ''}
+    ${chain.c ? `<div class="chain-layer">
+      <span class="layer-badge layer-c">C</span>
+      <span class="layer-c-text">${chain.c.slice(0,140)}</span>
+    </div>` : ''}
+  </div>`;
+}
+
 function cardHTML(t) {
   const c = cls(t.conviction);
   const [actCls, actLbl] = action(t.conviction);
@@ -521,7 +571,7 @@ function cardHTML(t) {
         <div class="card-name">${t.name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${t.conviction}%"></div></div>
         <div class="tags-row">${tickers}${tags}</div>
-        <div class="card-summary">${(t.summary||'').slice(0,260)}${(t.summary||'').length>260?'…':''}</div>
+        ${chainHTML(t.summary)}
         <div class="sparkline-wrap"><canvas id="${spId}" height="48"></canvas></div>
       </div>
     </div>
