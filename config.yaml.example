@@ -1,0 +1,53 @@
+# Alpha Hunter Configuration
+# Copy this to config.yaml and fill in your keys
+
+# Telegram alerts
+telegram:
+  bot_token: "YOUR_BOT_TOKEN"
+  chat_id: "YOUR_CHAT_ID"
+
+# Search / news
+brave:
+  api_key: "YOUR_BRAVE_API_KEY"
+
+# AI analysis (optional — uses Claude for thesis generation)
+anthropic:
+  api_key: "YOUR_ANTHROPIC_API_KEY"
+
+# Scanner settings
+scanner:
+  # How often to run (when using local schedule mode)
+  interval_hours: 6
+
+  # Conviction threshold to trigger an alert (0-100)
+  conviction_threshold: 65
+
+  # Universe to scan
+  universe:
+    - sp500          # S&P 500 constituents
+    - russell2000    # Small caps — best hunting ground
+    - etfs           # Sector ETFs for macro plays
+    - commodities    # Gold, silver, oil, copper, etc.
+    - crypto         # BTC, ETH, and altcoins
+
+  # Price filter — ignore anything too expensive or too cheap (penny stocks)
+  price_min: 1.0
+  price_max: 500.0
+
+  # Market cap filter (millions USD)
+  market_cap_min: 50
+  market_cap_max: 10000  # Focus on small/mid cap — bigger room to run
+
+# Signal weights (must sum to 100)
+signals:
+  price_vs_52w_low: 20       # How far from 52w low (cheaper = better)
+  volume_anomaly: 25         # Volume spike vs 30-day avg
+  short_interest: 15         # High short interest = squeeze potential
+  insider_activity: 20       # Insider buying
+  news_sentiment: 10         # News sentiment turning positive
+  social_momentum: 10        # Social mentions accelerating
+
+# Storage
+storage:
+  db_path: "data/alpha_hunter.db"
+  history_days: 90           # Keep N days of scan history
