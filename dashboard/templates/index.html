@@ -253,6 +253,43 @@
     .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text2); }
     .empty-state p { font-size: 13px; }
 
+    /* ─── TRADING OPPORTUNITIES ─── */
+    .opps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap:12px; }
+    .opp-card {
+      background: linear-gradient(135deg, #1a0a0a, #1e1010);
+      border: 1px solid rgba(248,113,113,.3);
+      border-radius: 10px; padding: 16px 18px;
+    }
+    .opp-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+    .opp-name { font-size:13px; font-weight:600; color:#fca5a5; flex:1; }
+    .opp-conviction { font-size:24px; font-weight:700; color:var(--red); font-family:'JetBrains Mono',monospace; }
+    .opp-assets { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+    .opp-asset { background:rgba(248,113,113,.12); color:var(--red); padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+    .opp-catalyst { font-size:11px; color:#7a4040; line-height:1.5; }
+    .opp-size { font-size:11px; color:#fca5a5; font-weight:600; margin-top:8px; }
+
+    /* ─── SIGNALS ─── */
+    .signal-item {
+      display:grid; grid-template-columns:70px 1fr;
+      gap:10px; padding:10px 0; border-bottom:1px solid var(--border);
+    }
+    .signal-item:last-child { border-bottom:none; }
+    .signal-strength { text-align:center; padding-top:2px; }
+    .sig-badge {
+      display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase;
+      padding:2px 6px; border-radius:4px; letter-spacing:.3px;
+    }
+    .sig-weak     { background:rgba(107,114,128,.2); color:#9ca3af; }
+    .sig-moderate { background:rgba(251,191,36,.12); color:#fbbf24; }
+    .sig-strong   { background:rgba(251,146,60,.15); color:var(--orange); }
+    .sig-critical { background:rgba(248,113,113,.15); color:var(--red); }
+    .sig-thesis   { font-size:10px; color:var(--text3); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+    .sig-desc     { font-size:12px; color:var(--text2); line-height:1.5; }
+    .sig-meta     { display:flex; align-items:center; gap:8px; margin-top:4px; }
+    .sig-time     { font-size:10px; color:var(--text3); font-family:'JetBrains Mono',monospace; }
+    .sig-link     { font-size:10px; color:var(--blue); text-decoration:none; }
+    .sig-link:hover { text-decoration:underline; }
+
     /* ─── SOURCES ─── */
     .sources-grid {
       display: grid;
@@ -334,15 +371,31 @@
 
 <!-- Main -->
 <div class="main">
+
+  <!-- Trading Opportunities -->
+  <div id="opps-section" style="display:none;margin-bottom:28px">
+    <div class="section-label" style="color:var(--red)">🚨 Trading Opportunities — conviction ≥ 65</div>
+    <div id="opps-grid" class="opps-grid"></div>
+  </div>
+
+  <!-- Theses -->
   <div class="section-label">Active Theses — sorted by conviction</div>
   <div class="thesis-grid" id="thesis-grid">
     <div class="empty-state"><h3>Loading...</h3><p>Fetching theses from the engine</p></div>
   </div>
 
-  <div class="section-label" style="margin-top:32px">Sources — what the system is reading</div>
-  <div id="sources-grid" class="sources-grid">
-    <div class="empty-state"><p>Loading sources...</p></div>
+  <!-- Signals + Sources row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px">
+    <div>
+      <div class="section-label">Recent Signals</div>
+      <div id="signals-list"></div>
+    </div>
+    <div>
+      <div class="section-label">Sources — what the system is reading</div>
+      <div id="sources-grid" class="sources-grid" style="grid-template-columns:1fr"></div>
+    </div>
   </div>
+
 </div>
 
 <script>
@@ -493,6 +546,51 @@ function cardHTML(t) {
   </div>`;
 }
 
+async function loadOpportunities() {
+  const opps = await fetch('/api/opportunities').then(r => r.json());
+  const section = document.getElementById('opps-section');
+  const grid = document.getElementById('opps-grid');
+  if (!opps.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = opps.map(o => {
+    const assets = JSON.parse(o.thesis_assets || o.assets || '[]');
+    return `
+    <div class="opp-card">
+      <div class="opp-header">
+        <div class="opp-name">${o.thesis_name}</div>
+        <div class="opp-conviction">${Math.round(o.current_conviction)}</div>
+      </div>
+      <div class="opp-assets">${assets.map(a => `<span class="opp-asset">$${a}</span>`).join('')}</div>
+      <div class="opp-catalyst">${(o.catalyst||'').slice(0,180)}</div>
+      <div class="opp-size">Suggested position: ${o.position_size || 30}% · triggered ${ago(o.triggered_at)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadSignals() {
+  const signals = await fetch('/api/signals').then(r => r.json());
+  const el = document.getElementById('signals-list');
+  if (!signals.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:12px 0">No signals yet — engine is running...</div>';
+    return;
+  }
+  const strengthCls = { weak:'sig-weak', moderate:'sig-moderate', strong:'sig-strong', critical:'sig-critical' };
+  el.innerHTML = signals.slice(0,20).map(s => `
+    <div class="signal-item">
+      <div class="signal-strength">
+        <div class="sig-badge ${strengthCls[s.strength]||'sig-weak'}">${s.strength||'—'}</div>
+        <div class="sig-thesis">${(s.thesis_name||'').slice(0,14)}</div>
+      </div>
+      <div>
+        <div class="sig-desc">${(s.trigger_desc||'').slice(0,160)}</div>
+        <div class="sig-meta">
+          <span class="sig-time">${ago(s.detected_at)}</span>
+          ${s.url ? `<a class="sig-link" href="${s.url}" target="_blank">↗ source</a>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
 async function loadSources() {
   const sources = await fetch('/api/sources').then(r => r.json());
   const el = document.getElementById('sources-grid');
@@ -522,6 +620,7 @@ async function refresh() {
       fetch('/api/theses').then(r => r.json()),
       fetch('/api/stats').then(r => r.json()),
     ]);
+    await Promise.all([loadOpportunities(), loadSignals()]);
 
     // Stats
     document.getElementById('s-active').textContent  = stats.active_theses;

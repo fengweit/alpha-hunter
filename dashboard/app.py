@@ -89,13 +89,60 @@ def api_events():
 
 @app.route("/api/sources")
 def api_sources():
-    """Recent source articles with URLs — what the system is reading."""
+    """News articles the system has read, with URLs."""
     conn = db()
     rows = conn.execute(
-        """SELECT source, content, url, author, received_at
-           FROM raw_events
-           WHERE url != '' AND url IS NOT NULL
-           ORDER BY received_at DESC LIMIT 60"""
+        """SELECT * FROM news_articles ORDER BY fetched_at DESC LIMIT 80"""
+    ).fetchall()
+    if not rows:
+        # Fallback to raw_events for backwards compat
+        rows = conn.execute(
+            """SELECT source as outlet, content, url, author, received_at as fetched_at
+               FROM raw_events WHERE url != '' ORDER BY received_at DESC LIMIT 60"""
+        ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/thesis/<int:thesis_id>/timeline")
+def api_timeline(thesis_id):
+    """Full lifecycle timeline for a thesis."""
+    conn = db()
+    rows = conn.execute(
+        """SELECT t.*, s.trigger_desc as signal_desc, s.url as signal_url, s.strength
+           FROM thesis_timeline t
+           LEFT JOIN signals s ON t.signal_id = s.id
+           WHERE t.thesis_id=? ORDER BY t.happened_at ASC""",
+        (thesis_id,)
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/signals")
+def api_signals():
+    """Recent signals across all theses."""
+    conn = db()
+    rows = conn.execute(
+        """SELECT s.*, t.name as thesis_name
+           FROM signals s
+           JOIN theses t ON s.thesis_id = t.id
+           ORDER BY s.detected_at DESC LIMIT 50"""
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/opportunities")
+def api_opportunities():
+    """Active trading opportunities (conviction ≥ 65)."""
+    conn = db()
+    rows = conn.execute(
+        """SELECT o.*, t.name as thesis_name, t.conviction as current_conviction,
+                  t.assets as thesis_assets
+           FROM trading_opportunities o
+           JOIN theses t ON o.thesis_id = t.id
+           WHERE o.status='active' ORDER BY o.triggered_at DESC"""
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
