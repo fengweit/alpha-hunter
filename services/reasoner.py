@@ -54,8 +54,8 @@ def reason_on_events(events: list) -> dict:
     ]) or "None yet."
 
     event_text = "\n\n".join([
-        f"[{e['source'].upper()}] {e['content'][:600]}"
-        for e in events[:15]  # Process in batches of 15
+        f"[{e['source'].upper()}] {e['content'][:300]}"
+        for e in events[:10]  # Process in batches of 10
     ])
 
     prompt = f"""Analyze these new market events and decide:
@@ -101,17 +101,22 @@ Rules:
 
     try:
         response = client.messages.create(
-            model="claude-haiku-3-5",
-            max_tokens=2000,
+            model="claude-haiku-4-5-20251001",
+            max_tokens=4096,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = response.content[0].text.strip()
         # Strip markdown if present
-        if raw.startswith("```"):
+        if "```" in raw:
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
+        # Find JSON boundaries robustly
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start >= 0 and end > start:
+            raw = raw[start:end]
         return json.loads(raw)
 
     except Exception as e:
@@ -176,7 +181,7 @@ def apply_reasoning(result: dict, event_sources: list):
 
 def run():
     """Process all unprocessed events through Claude."""
-    events = get_unprocessed_events(limit=30)
+    events = get_unprocessed_events(limit=10)
     if not events:
         log.info("Reasoner: no new events to process")
         return 0

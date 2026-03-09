@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎯 Alpha Hunter</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0e1a;
+      color: #e0e6f0;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: #0d1220;
+      border-bottom: 1px solid #1e2a40;
+    }
+    header h1 { font-size: 18px; color: #f0c040; letter-spacing: 1px; }
+    header .meta { color: #5a7090; font-size: 11px; }
+    #pulse { display: inline-block; width: 8px; height: 8px; background: #22c55e;
+             border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex; gap: 0;
+      background: #0d1220;
+      border-bottom: 1px solid #1e2a40;
+      padding: 0 24px;
+    }
+    .stat {
+      padding: 10px 24px 10px 0;
+      margin-right: 24px;
+      border-right: 1px solid #1e2a40;
+    }
+    .stat:last-child { border-right: none; }
+    .stat .val { font-size: 22px; font-weight: bold; color: #f0c040; }
+    .stat .lbl { color: #5a7090; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 0;
+      height: calc(100vh - 96px);
+    }
+
+    /* ── Thesis panel ── */
+    .thesis-panel {
+      overflow-y: auto;
+      padding: 16px;
+      border-right: 1px solid #1e2a40;
+    }
+    .thesis-panel h2 { color: #5a7090; font-size: 10px; text-transform: uppercase;
+                       letter-spacing: 1px; margin-bottom: 12px; }
+
+    /* ── Thesis card ── */
+    .thesis-card {
+      background: #111827;
+      border: 1px solid #1e2a40;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      transition: border-color .2s;
+      cursor: default;
+    }
+    .thesis-card:hover { border-color: #334466; }
+    .thesis-card.high   { border-left: 3px solid #ef4444; }
+    .thesis-card.medium { border-left: 3px solid #f97316; }
+    .thesis-card.low    { border-left: 3px solid #f0c040; }
+    .thesis-card.watch  { border-left: 3px solid #374151; }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .card-name { font-size: 13px; font-weight: bold; color: #c8d8f0; flex: 1; line-height: 1.4; }
+    .card-score { font-size: 20px; font-weight: bold; white-space: nowrap; }
+    .high .card-score   { color: #ef4444; }
+    .medium .card-score { color: #f97316; }
+    .low .card-score    { color: #f0c040; }
+    .watch .card-score  { color: #6b7280; }
+
+    .card-bar-wrap { margin: 8px 0 6px; height: 4px; background: #1e2a40; border-radius: 2px; overflow: hidden; }
+    .card-bar { height: 100%; border-radius: 2px; transition: width .8s ease; }
+    .high   .card-bar { background: linear-gradient(90deg, #ef4444, #f97316); }
+    .medium .card-bar { background: linear-gradient(90deg, #f97316, #f0c040); }
+    .low    .card-bar { background: linear-gradient(90deg, #f0c040, #84cc16); }
+    .watch  .card-bar { background: #374151; }
+
+    .card-meta { display: flex; gap: 12px; margin: 6px 0; flex-wrap: wrap; }
+    .card-meta .tag {
+      background: #1e2a40; color: #7090b0; font-size: 10px;
+      padding: 2px 7px; border-radius: 10px; letter-spacing: .3px;
+    }
+    .card-meta .ticker {
+      background: #1a2a1a; color: #4ade80; font-size: 10px;
+      padding: 2px 7px; border-radius: 10px; font-weight: bold;
+    }
+
+    .card-summary { color: #7090b0; font-size: 11px; line-height: 1.5; margin: 6px 0 8px; }
+
+    .card-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .card-action { font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: bold; }
+    .action-watch  { background: #1e2a40; color: #5a7090; }
+    .action-starter{ background: #1c2a1c; color: #4ade80; }
+    .action-add    { background: #1a2516; color: #84cc16; }
+    .action-build  { background: #2a1e10; color: #f97316; }
+    .action-high   { background: #2a1010; color: #ef4444; }
+    .action-full   { background: #3a0a0a; color: #ff6060; }
+
+    .card-age { color: #374151; font-size: 10px; }
+
+    /* Sparkline */
+    .sparkline-wrap { margin: 8px 0 4px; height: 36px; }
+
+    /* ── Evidence panel ── */
+    .evidence-panel { overflow-y: auto; padding: 16px; background: #080d18; }
+    .evidence-panel h2 { color: #5a7090; font-size: 10px; text-transform: uppercase;
+                          letter-spacing: 1px; margin-bottom: 12px; }
+
+    .ev-item {
+      border-bottom: 1px solid #111827;
+      padding: 8px 0;
+    }
+    .ev-header { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+    .ev-dir { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+    .ev-dir.for     { background: #1c2a1c; color: #4ade80; }
+    .ev-dir.against { background: #2a1010; color: #ef4444; }
+    .ev-dir.neutral { background: #1e2a40; color: #6b7280; }
+    .ev-src { color: #374151; font-size: 10px; }
+    .ev-at  { color: #1e2a40; font-size: 10px; margin-left: auto; }
+    .ev-text { color: #5a7090; font-size: 11px; line-height: 1.4; }
+    .ev-thesis { color: #334466; font-size: 10px; margin-top: 2px; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; color: #374151; padding: 40px; font-size: 12px; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e2a40; border-radius: 2px; }
+
+    /* ── Last updated ── */
+    #last-updated { color: #374151; font-size: 10px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 Alpha Hunter <span style="color:#5a7090;font-size:12px;font-weight:normal;">/ thesis intelligence</span></h1>
+  <div class="meta">
+    <span id="pulse"></span>
+    <span id="last-updated">loading...</span>
+    &nbsp;·&nbsp; auto-refresh 30s
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="val" id="s-active">—</div><div class="lbl">Active Theses</div></div>
+  <div class="stat"><div class="val" id="s-high" style="color:#ef4444">—</div><div class="lbl">High Conviction</div></div>
+  <div class="stat"><div class="val" id="s-evidence">—</div><div class="lbl">Evidence Pieces</div></div>
+  <div class="stat"><div class="val" id="s-events">—</div><div class="lbl">Events Collected</div></div>
+  <div class="stat"><div class="val" id="s-pending" style="color:#f0c040">—</div><div class="lbl">Pending Reasoning</div></div>
+</div>
+
+<div class="layout">
+
+  <!-- Left: Thesis cards -->
+  <div class="thesis-panel">
+    <h2>Active Theses — sorted by conviction</h2>
+    <div id="thesis-list"><div class="empty">Loading theses...</div></div>
+  </div>
+
+  <!-- Right: Evidence feed -->
+  <div class="evidence-panel">
+    <h2>Evidence Feed</h2>
+    <div id="evidence-list"><div class="empty">Loading evidence...</div></div>
+  </div>
+
+</div>
+
+<script>
+const charts = {};
+
+function convictionClass(v) {
+  if (v >= 65) return 'high';
+  if (v >= 40) return 'medium';
+  if (v >= 20) return 'low';
+  return 'watch';
+}
+
+function actionLabel(v) {
+  if (v < 20) return ['action-watch',  '👀 Watch only'];
+  if (v < 35) return ['action-starter','🪙 Starter position'];
+  if (v < 50) return ['action-add',    '➕ Add on dips'];
+  if (v < 65) return ['action-build',  '💰 Build size'];
+  if (v < 80) return ['action-high',   '🔥 High conviction'];
+  return              ['action-full',   '🚀 Full position'];
+}
+
+function timeAgo(str) {
+  const d = new Date(str + (str.includes('Z') ? '' : 'Z'));
+  const s = Math.floor((Date.now() - d) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+
+function renderSparkline(canvasId, history) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
+  if (!history || history.length < 2) return;
+
+  const labels = history.map(h => '');
+  const data   = history.map(h => h.v);
+  const last   = data[data.length - 1];
+  const color  = last >= 65 ? '#ef4444' : last >= 40 ? '#f97316' : '#f0c040';
+
+  charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor: color,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        backgroundColor: color + '15',
+        tension: 0.4,
+      }]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false },
+        y: { display: false, min: 0, max: 100 }
+      }
+    }
+  });
+}
+
+async function loadTheses() {
+  const res = await fetch('/api/theses');
+  const theses = await res.json();
+  const el = document.getElementById('thesis-list');
+
+  if (!theses.length) {
+    el.innerHTML = '<div class="empty">No active theses yet. System is collecting data...</div>';
+    return;
+  }
+
+  // Collect all evidence for the evidence panel
+  const allEvidence = [];
+
+  el.innerHTML = theses.map(t => {
+    const cls = convictionClass(t.conviction);
+    const [actCls, actLbl] = actionLabel(t.conviction);
+    const tickers = (t.assets || []).map(a => `<span class="ticker">$${a}</span>`).join(' ');
+    const tags = (t.tags || []).map(g => `<span class="tag">${g}</span>`).join(' ');
+    const cid = `spark-${t.id}`;
+
+    t.evidence.forEach(e => allEvidence.push({...e, thesis: t.name}));
+
+    return `
+    <div class="thesis-card ${cls}">
+      <div class="card-top">
+        <div class="card-name">${t.name}</div>
+        <div class="card-score">${Math.round(t.conviction)}</div>
+      </div>
+      <div class="card-bar-wrap"><div class="card-bar" style="width:${t.conviction}%"></div></div>
+      <div class="card-meta">${tickers}${tags}</div>
+      <div class="card-summary">${(t.summary || '').slice(0, 220)}${t.summary && t.summary.length > 220 ? '...' : ''}</div>
+      <div class="sparkline-wrap"><canvas id="${cid}" height="36"></canvas></div>
+      <div class="card-bottom">
+        <span class="card-action ${actCls}">${actLbl}</span>
+        <span class="card-age">born ${timeAgo(t.born_at)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Draw sparklines after DOM update
+  theses.forEach(t => renderSparkline(`spark-${t.id}`, t.history));
+
+  // Render evidence panel
+  renderEvidence(allEvidence);
+}
+
+function renderEvidence(items) {
+  const el = document.getElementById('evidence-list');
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">No evidence yet</div>';
+    return;
+  }
+  // Sort by time descending
+  items.sort((a, b) => new Date(b.at) - new Date(a.at));
+  el.innerHTML = items.slice(0, 40).map(e => `
+    <div class="ev-item">
+      <div class="ev-header">
+        <span class="ev-dir ${e.dir}">${e.dir === 'for' ? '▲ FOR' : e.dir === 'against' ? '▼ AGAINST' : '● NEUTRAL'}</span>
+        <span class="ev-src">${e.src}</span>
+        <span class="ev-at">${timeAgo(e.at)}</span>
+      </div>
+      <div class="ev-text">${e.content}</div>
+      <div class="ev-thesis">↳ ${e.thesis}</div>
+    </div>
+  `).join('');
+}
+
+async function loadStats() {
+  const res = await fetch('/api/stats');
+  const s = await res.json();
+  document.getElementById('s-active').textContent = s.active_theses;
+  document.getElementById('s-high').textContent = s.high_conviction;
+  document.getElementById('s-evidence').textContent = s.total_evidence;
+  document.getElementById('s-events').textContent = s.total_events;
+  document.getElementById('s-pending').textContent = s.unprocessed_events;
+}
+
+async function refresh() {
+  try {
+    await Promise.all([loadTheses(), loadStats()]);
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('last-updated').textContent = `Last updated ${now}`;
+  } catch(e) {
+    console.error('Refresh error:', e);
+  }
+}
+
+// Initial load + auto-refresh every 30s
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
