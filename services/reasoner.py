@@ -101,7 +101,7 @@ Rules:
 
     try:
         response = client.messages.create(
-            model="claude-opus-4-5",
+            model="claude-haiku-3-5",
             max_tokens=2000,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}]
