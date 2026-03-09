@@ -3,247 +3,360 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎯 Alpha Hunter</title>
+  <title>Alpha Hunter</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0f1a;
+      --bg2:       #0f1520;
+      --bg3:       #131c2e;
+      --bg4:       #1a2340;
+      --border:    #1e2d45;
+      --border2:   #263550;
+      --text:      #cdd9f0;
+      --text2:     #7a90b0;
+      --text3:     #3d5070;
+      --gold:      #f0c040;
+      --green:     #34d399;
+      --red:       #f87171;
+      --orange:    #fb923c;
+      --blue:      #60a5fa;
+      --purple:    #a78bfa;
+    }
+
+    html, body { height: 100%; }
 
     body {
-      background: #0a0e1a;
-      color: #e0e6f0;
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
       font-size: 13px;
-      min-height: 100vh;
+      line-height: 1.5;
     }
 
-    /* ── Header ── */
+    /* ─── HEADER ─── */
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 24px;
-      background: #0d1220;
-      border-bottom: 1px solid #1e2a40;
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      height: 52px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
     }
-    header h1 { font-size: 18px; color: #f0c040; letter-spacing: 1px; }
-    header .meta { color: #5a7090; font-size: 11px; }
-    #pulse { display: inline-block; width: 8px; height: 8px; background: #22c55e;
-             border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* ── Stats bar ── */
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px; color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .logo span { color: var(--gold); }
+    .logo-dot {
+      width: 8px; height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: glow 2s ease-in-out infinite;
+    }
+    @keyframes glow { 0%,100%{opacity:1;box-shadow:0 0 8px var(--green)} 50%{opacity:.4;box-shadow:none} }
+
+    .header-right { display: flex; align-items: center; gap: 20px; }
+    .last-update { color: var(--text3); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+    .refresh-btn {
+      padding: 5px 14px;
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text2);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ─── STATS BAR ─── */
     .stats-bar {
-      display: flex; gap: 0;
-      background: #0d1220;
-      border-bottom: 1px solid #1e2a40;
-      padding: 0 24px;
+      display: flex; gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
     }
-    .stat {
-      padding: 10px 24px 10px 0;
-      margin-right: 24px;
-      border-right: 1px solid #1e2a40;
+    .stat-item {
+      flex: 1;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 12px 20px;
+      background: var(--bg2);
     }
-    .stat:last-child { border-right: none; }
-    .stat .val { font-size: 22px; font-weight: bold; color: #f0c040; }
-    .stat .lbl { color: #5a7090; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+    .stat-val { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .stat-val.red    { color: var(--red); }
+    .stat-val.gold   { color: var(--gold); }
+    .stat-val.green  { color: var(--green); }
+    .stat-val.blue   { color: var(--blue); }
+    .stat-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--text3); margin-top: 2px; }
 
-    /* ── Layout ── */
-    .layout {
+    /* ─── MAIN LAYOUT ─── */
+    .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text3); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* ─── THESIS GRID ─── */
+    .thesis-grid {
       display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 0;
-      height: calc(100vh - 96px);
+      grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+      gap: 16px;
     }
 
-    /* ── Thesis panel ── */
-    .thesis-panel {
-      overflow-y: auto;
-      padding: 16px;
-      border-right: 1px solid #1e2a40;
+    /* ─── THESIS CARD ─── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color .2s, box-shadow .2s;
     }
-    .thesis-panel h2 { color: #5a7090; font-size: 10px; text-transform: uppercase;
-                       letter-spacing: 1px; margin-bottom: 12px; }
+    .card:hover { border-color: var(--border2); box-shadow: 0 4px 24px rgba(0,0,0,.4); }
 
-    /* ── Thesis card ── */
-    .thesis-card {
-      background: #111827;
-      border: 1px solid #1e2a40;
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      transition: border-color .2s;
-      cursor: default;
+    .card.c-high   { border-top: 2px solid var(--red); }
+    .card.c-medium { border-top: 2px solid var(--orange); }
+    .card.c-low    { border-top: 2px solid var(--gold); }
+    .card.c-watch  { border-top: 2px solid var(--border2); }
+
+    /* Card header */
+    .card-head {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 18px 20px 14px;
     }
-    .thesis-card:hover { border-color: #334466; }
-    .thesis-card.high   { border-left: 3px solid #ef4444; }
-    .thesis-card.medium { border-left: 3px solid #f97316; }
-    .thesis-card.low    { border-left: 3px solid #f0c040; }
-    .thesis-card.watch  { border-left: 3px solid #374151; }
-
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .card-name { font-size: 13px; font-weight: bold; color: #c8d8f0; flex: 1; line-height: 1.4; }
-    .card-score { font-size: 20px; font-weight: bold; white-space: nowrap; }
-    .high .card-score   { color: #ef4444; }
-    .medium .card-score { color: #f97316; }
-    .low .card-score    { color: #f0c040; }
-    .watch .card-score  { color: #6b7280; }
-
-    .card-bar-wrap { margin: 8px 0 6px; height: 4px; background: #1e2a40; border-radius: 2px; overflow: hidden; }
-    .card-bar { height: 100%; border-radius: 2px; transition: width .8s ease; }
-    .high   .card-bar { background: linear-gradient(90deg, #ef4444, #f97316); }
-    .medium .card-bar { background: linear-gradient(90deg, #f97316, #f0c040); }
-    .low    .card-bar { background: linear-gradient(90deg, #f0c040, #84cc16); }
-    .watch  .card-bar { background: #374151; }
-
-    .card-meta { display: flex; gap: 12px; margin: 6px 0; flex-wrap: wrap; }
-    .card-meta .tag {
-      background: #1e2a40; color: #7090b0; font-size: 10px;
-      padding: 2px 7px; border-radius: 10px; letter-spacing: .3px;
+    .card-score-block { text-align: center; min-width: 56px; }
+    .card-score-num {
+      font-size: 28px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
     }
-    .card-meta .ticker {
-      background: #1a2a1a; color: #4ade80; font-size: 10px;
-      padding: 2px 7px; border-radius: 10px; font-weight: bold;
+    .c-high   .card-score-num { color: var(--red); }
+    .c-medium .card-score-num { color: var(--orange); }
+    .c-low    .card-score-num { color: var(--gold); }
+    .c-watch  .card-score-num { color: var(--text3); }
+    .card-score-lbl { font-size: 9px; text-transform: uppercase; color: var(--text3); letter-spacing: .5px; margin-top: 2px; }
+
+    .card-body { flex: 1; min-width: 0; }
+    .card-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 8px; }
+
+    /* Conviction bar */
+    .bar-track {
+      height: 3px; background: var(--bg4); border-radius: 2px; overflow: hidden; margin-bottom: 10px;
     }
+    .bar-fill {
+      height: 100%; border-radius: 2px; transition: width 1s ease;
+    }
+    .c-high   .bar-fill { background: linear-gradient(90deg, #ef4444, #f97316); }
+    .c-medium .bar-fill { background: linear-gradient(90deg, #f97316, #fbbf24); }
+    .c-low    .bar-fill { background: linear-gradient(90deg, #f0c040, #84cc16); }
+    .c-watch  .bar-fill { background: var(--bg4); }
 
-    .card-summary { color: #7090b0; font-size: 11px; line-height: 1.5; margin: 6px 0 8px; }
+    /* Tags row */
+    .tags-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .tag {
+      padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500;
+    }
+    .tag-ticker { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .tag-label  { background: var(--bg4); color: var(--text3); border: 1px solid var(--border); }
 
-    .card-bottom { display: flex; justify-content: space-between; align-items: center; }
-    .card-action { font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: bold; }
-    .action-watch  { background: #1e2a40; color: #5a7090; }
-    .action-starter{ background: #1c2a1c; color: #4ade80; }
-    .action-add    { background: #1a2516; color: #84cc16; }
-    .action-build  { background: #2a1e10; color: #f97316; }
-    .action-high   { background: #2a1010; color: #ef4444; }
-    .action-full   { background: #3a0a0a; color: #ff6060; }
-
-    .card-age { color: #374151; font-size: 10px; }
+    /* Summary */
+    .card-summary {
+      font-size: 12px; color: var(--text2); line-height: 1.6;
+      padding: 0 20px 14px 0;
+    }
 
     /* Sparkline */
-    .sparkline-wrap { margin: 8px 0 4px; height: 36px; }
+    .sparkline-wrap { height: 48px; padding: 0; margin-bottom: 0; }
 
-    /* ── Evidence panel ── */
-    .evidence-panel { overflow-y: auto; padding: 16px; background: #080d18; }
-    .evidence-panel h2 { color: #5a7090; font-size: 10px; text-transform: uppercase;
-                          letter-spacing: 1px; margin-bottom: 12px; }
+    /* Action badge */
+    .action-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: var(--bg3); }
+    .action-badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+    .ab-watch   { background: rgba(255,255,255,.04); color: var(--text3); }
+    .ab-starter { background: rgba(52,211,153,.1);   color: var(--green); }
+    .ab-add     { background: rgba(132,204,22,.1);   color: #84cc16; }
+    .ab-build   { background: rgba(251,146,60,.1);   color: var(--orange); }
+    .ab-high    { background: rgba(248,113,113,.12); color: var(--red); }
+    .ab-full    { background: rgba(248,113,113,.2);  color: #ff6060; }
+    .card-age { font-size: 10px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── EVIDENCE ─── */
+    .evidence-section { border-top: 1px solid var(--border); }
+    .evidence-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px;
+      cursor: pointer;
+      color: var(--text3);
+      font-size: 11px;
+      user-select: none;
+      transition: color .15s;
+    }
+    .evidence-toggle:hover { color: var(--text2); }
+    .evidence-toggle .ev-count {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ev-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 1px 7px; border-radius: 10px; font-size: 10px;
+    }
+    .ev-pill.for     { background: rgba(52,211,153,.1); color: var(--green); }
+    .ev-pill.against { background: rgba(248,113,113,.12); color: var(--red); }
+    .toggle-icon { font-size: 10px; transition: transform .2s; }
+    .toggle-icon.open { transform: rotate(180deg); }
+
+    .evidence-list { padding: 0 20px 16px; display: none; }
+    .evidence-list.open { display: block; }
 
     .ev-item {
-      border-bottom: 1px solid #111827;
-      padding: 8px 0;
+      display: grid; grid-template-columns: 60px 1fr;
+      gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
     }
-    .ev-header { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
-    .ev-dir { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
-    .ev-dir.for     { background: #1c2a1c; color: #4ade80; }
-    .ev-dir.against { background: #2a1010; color: #ef4444; }
-    .ev-dir.neutral { background: #1e2a40; color: #6b7280; }
-    .ev-src { color: #374151; font-size: 10px; }
-    .ev-at  { color: #1e2a40; font-size: 10px; margin-left: auto; }
-    .ev-text { color: #5a7090; font-size: 11px; line-height: 1.4; }
-    .ev-thesis { color: #334466; font-size: 10px; margin-top: 2px; }
+    .ev-item:last-child { border-bottom: none; }
 
-    /* ── Empty state ── */
-    .empty { text-align: center; color: #374151; padding: 40px; font-size: 12px; }
+    .ev-dir-col { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 2px; }
+    .ev-dir-badge {
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+      padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+    }
+    .ev-dir-badge.for     { background: rgba(52,211,153,.15);  color: var(--green); }
+    .ev-dir-badge.against { background: rgba(248,113,113,.15); color: var(--red); }
+    .ev-dir-badge.neutral { background: var(--bg4); color: var(--text3); }
+    .ev-source { font-size: 9px; color: var(--text3); font-family: 'JetBrains Mono', monospace; text-align: center; }
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 4px; }
+    .ev-content-col {}
+    .ev-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+    .ev-time { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── EMPTY ─── */
+    .empty-state {
+      text-align: center; padding: 80px 20px;
+      color: var(--text3);
+    }
+    .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text2); }
+    .empty-state p { font-size: 13px; }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e2a40; border-radius: 2px; }
-
-    /* ── Last updated ── */
-    #last-updated { color: #374151; font-size: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
   </style>
 </head>
 <body>
 
+<!-- Header -->
 <header>
-  <h1>🎯 Alpha Hunter <span style="color:#5a7090;font-size:12px;font-weight:normal;">/ thesis intelligence</span></h1>
-  <div class="meta">
-    <span id="pulse"></span>
-    <span id="last-updated">loading...</span>
-    &nbsp;·&nbsp; auto-refresh 30s
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span>Alpha</span><span>Hunter</span>
+    <span style="color:var(--text3);font-weight:400;font-size:12px">/ thesis intelligence</span>
+  </div>
+  <div class="header-right">
+    <span class="last-update" id="last-update">—</span>
+    <button class="refresh-btn" onclick="refresh()">↻ Refresh</button>
   </div>
 </header>
 
+<!-- Stats bar -->
 <div class="stats-bar">
-  <div class="stat"><div class="val" id="s-active">—</div><div class="lbl">Active Theses</div></div>
-  <div class="stat"><div class="val" id="s-high" style="color:#ef4444">—</div><div class="lbl">High Conviction</div></div>
-  <div class="stat"><div class="val" id="s-evidence">—</div><div class="lbl">Evidence Pieces</div></div>
-  <div class="stat"><div class="val" id="s-events">—</div><div class="lbl">Events Collected</div></div>
-  <div class="stat"><div class="val" id="s-pending" style="color:#f0c040">—</div><div class="lbl">Pending Reasoning</div></div>
+  <div class="stat-item">
+    <div class="stat-val blue" id="s-active">—</div>
+    <div class="stat-lbl">Active Theses</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val red" id="s-high">—</div>
+    <div class="stat-lbl">High Conviction ≥65</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val green" id="s-evidence">—</div>
+    <div class="stat-lbl">Evidence Pieces</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val" id="s-events">—</div>
+    <div class="stat-lbl">Events Collected</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val gold" id="s-pending">—</div>
+    <div class="stat-lbl">Pending Reasoning</div>
+  </div>
 </div>
 
-<div class="layout">
-
-  <!-- Left: Thesis cards -->
-  <div class="thesis-panel">
-    <h2>Active Theses — sorted by conviction</h2>
-    <div id="thesis-list"><div class="empty">Loading theses...</div></div>
+<!-- Main -->
+<div class="main">
+  <div class="section-label">Active Theses — sorted by conviction</div>
+  <div class="thesis-grid" id="thesis-grid">
+    <div class="empty-state"><h3>Loading...</h3><p>Fetching theses from the engine</p></div>
   </div>
-
-  <!-- Right: Evidence feed -->
-  <div class="evidence-panel">
-    <h2>Evidence Feed</h2>
-    <div id="evidence-list"><div class="empty">Loading evidence...</div></div>
-  </div>
-
 </div>
 
 <script>
 const charts = {};
 
-function convictionClass(v) {
-  if (v >= 65) return 'high';
-  if (v >= 40) return 'medium';
-  if (v >= 20) return 'low';
-  return 'watch';
+function cls(v) {
+  if (v >= 65) return 'c-high';
+  if (v >= 40) return 'c-medium';
+  if (v >= 20) return 'c-low';
+  return 'c-watch';
 }
 
-function actionLabel(v) {
-  if (v < 20) return ['action-watch',  '👀 Watch only'];
-  if (v < 35) return ['action-starter','🪙 Starter position'];
-  if (v < 50) return ['action-add',    '➕ Add on dips'];
-  if (v < 65) return ['action-build',  '💰 Build size'];
-  if (v < 80) return ['action-high',   '🔥 High conviction'];
-  return              ['action-full',   '🚀 Full position'];
+function action(v) {
+  if (v < 20) return ['ab-watch',   '👀 Watch only'];
+  if (v < 35) return ['ab-starter', '🪙 Starter position'];
+  if (v < 50) return ['ab-add',     '➕ Add on dips'];
+  if (v < 65) return ['ab-build',   '💰 Build size'];
+  if (v < 80) return ['ab-high',    '🔥 High conviction'];
+  return              ['ab-full',    '🚀 Full position'];
 }
 
-function timeAgo(str) {
-  const d = new Date(str + (str.includes('Z') ? '' : 'Z'));
+function ago(str) {
+  const d = new Date(str.includes('Z') || str.includes('+') ? str : str + 'Z');
   const s = Math.floor((Date.now() - d) / 1000);
-  if (s < 60) return `${s}s ago`;
+  if (s < 60)   return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s/60)}m ago`;
-  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+  if (s < 86400)return `${Math.floor(s/3600)}h ago`;
   return `${Math.floor(s/86400)}d ago`;
 }
 
-function renderSparkline(canvasId, history) {
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
-  if (!history || history.length < 2) return;
+function srcShort(src) {
+  return src.replace('news:', '').replace('_search', '').slice(0, 14);
+}
 
-  const labels = history.map(h => '');
-  const data   = history.map(h => h.v);
-  const last   = data[data.length - 1];
-  const color  = last >= 65 ? '#ef4444' : last >= 40 ? '#f97316' : '#f0c040';
+function renderSpark(id, history) {
+  const el = document.getElementById(id);
+  if (!el || !history || history.length < 2) return;
+  if (charts[id]) { charts[id].destroy(); }
 
-  charts[canvasId] = new Chart(ctx, {
+  const vals = history.map(h => h.v);
+  const last  = vals[vals.length - 1];
+  const color = last >= 65 ? '#f87171' : last >= 40 ? '#fb923c' : '#f0c040';
+
+  charts[id] = new Chart(el, {
     type: 'line',
     data: {
-      labels,
+      labels: vals.map(() => ''),
       datasets: [{
-        data,
+        data: vals,
         borderColor: color,
-        borderWidth: 1.5,
+        borderWidth: 2,
         pointRadius: 0,
         fill: true,
-        backgroundColor: color + '15',
-        tension: 0.4,
+        backgroundColor: color + '18',
+        tension: 0.5,
       }]
     },
     options: {
-      animation: false,
-      responsive: true,
-      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
         x: { display: false },
@@ -253,94 +366,106 @@ function renderSparkline(canvasId, history) {
   });
 }
 
-async function loadTheses() {
-  const res = await fetch('/api/theses');
-  const theses = await res.json();
-  const el = document.getElementById('thesis-list');
-
-  if (!theses.length) {
-    el.innerHTML = '<div class="empty">No active theses yet. System is collecting data...</div>';
-    return;
+function evidenceHTML(evidence) {
+  if (!evidence || !evidence.length) {
+    return `<div style="color:var(--text3);font-size:12px;padding:12px 0">No evidence recorded yet</div>`;
   }
-
-  // Collect all evidence for the evidence panel
-  const allEvidence = [];
-
-  el.innerHTML = theses.map(t => {
-    const cls = convictionClass(t.conviction);
-    const [actCls, actLbl] = actionLabel(t.conviction);
-    const tickers = (t.assets || []).map(a => `<span class="ticker">$${a}</span>`).join(' ');
-    const tags = (t.tags || []).map(g => `<span class="tag">${g}</span>`).join(' ');
-    const cid = `spark-${t.id}`;
-
-    t.evidence.forEach(e => allEvidence.push({...e, thesis: t.name}));
-
-    return `
-    <div class="thesis-card ${cls}">
-      <div class="card-top">
-        <div class="card-name">${t.name}</div>
-        <div class="card-score">${Math.round(t.conviction)}</div>
-      </div>
-      <div class="card-bar-wrap"><div class="card-bar" style="width:${t.conviction}%"></div></div>
-      <div class="card-meta">${tickers}${tags}</div>
-      <div class="card-summary">${(t.summary || '').slice(0, 220)}${t.summary && t.summary.length > 220 ? '...' : ''}</div>
-      <div class="sparkline-wrap"><canvas id="${cid}" height="36"></canvas></div>
-      <div class="card-bottom">
-        <span class="card-action ${actCls}">${actLbl}</span>
-        <span class="card-age">born ${timeAgo(t.born_at)}</span>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Draw sparklines after DOM update
-  theses.forEach(t => renderSparkline(`spark-${t.id}`, t.history));
-
-  // Render evidence panel
-  renderEvidence(allEvidence);
-}
-
-function renderEvidence(items) {
-  const el = document.getElementById('evidence-list');
-  if (!items.length) {
-    el.innerHTML = '<div class="empty">No evidence yet</div>';
-    return;
-  }
-  // Sort by time descending
-  items.sort((a, b) => new Date(b.at) - new Date(a.at));
-  el.innerHTML = items.slice(0, 40).map(e => `
+  return evidence.map(e => `
     <div class="ev-item">
-      <div class="ev-header">
-        <span class="ev-dir ${e.dir}">${e.dir === 'for' ? '▲ FOR' : e.dir === 'against' ? '▼ AGAINST' : '● NEUTRAL'}</span>
-        <span class="ev-src">${e.src}</span>
-        <span class="ev-at">${timeAgo(e.at)}</span>
+      <div class="ev-dir-col">
+        <div class="ev-dir-badge ${e.dir}">${e.dir === 'for' ? '▲ FOR' : e.dir === 'against' ? '▼ AGAINST' : '● NEU'}</div>
+        <div class="ev-source">${srcShort(e.src)}</div>
       </div>
-      <div class="ev-text">${e.content}</div>
-      <div class="ev-thesis">↳ ${e.thesis}</div>
+      <div class="ev-content-col">
+        <div class="ev-text">${e.content}</div>
+        <div class="ev-time">${ago(e.at)}</div>
+      </div>
     </div>
   `).join('');
 }
 
-async function loadStats() {
-  const res = await fetch('/api/stats');
-  const s = await res.json();
-  document.getElementById('s-active').textContent = s.active_theses;
-  document.getElementById('s-high').textContent = s.high_conviction;
-  document.getElementById('s-evidence').textContent = s.total_evidence;
-  document.getElementById('s-events').textContent = s.total_events;
-  document.getElementById('s-pending').textContent = s.unprocessed_events;
+function toggleEvidence(id) {
+  const list = document.getElementById(`ev-list-${id}`);
+  const icon = document.getElementById(`ev-icon-${id}`);
+  list.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+
+function cardHTML(t) {
+  const c = cls(t.conviction);
+  const [actCls, actLbl] = action(t.conviction);
+  const tickers = (t.assets || []).map(a => `<span class="tag tag-ticker">$${a}</span>`).join('');
+  const tags = (t.tags || []).map(g => `<span class="tag tag-label">${g}</span>`).join('');
+  const spId = `sp-${t.id}`;
+
+  const forCount  = (t.evidence || []).filter(e => e.dir === 'for').length;
+  const agstCount = (t.evidence || []).filter(e => e.dir === 'against').length;
+
+  return `
+  <div class="card ${c}">
+    <div class="card-head">
+      <div class="card-score-block">
+        <div class="card-score-num">${Math.round(t.conviction)}</div>
+        <div class="card-score-lbl">/ 100</div>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${t.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${t.conviction}%"></div></div>
+        <div class="tags-row">${tickers}${tags}</div>
+        <div class="card-summary">${(t.summary||'').slice(0,260)}${(t.summary||'').length>260?'…':''}</div>
+        <div class="sparkline-wrap"><canvas id="${spId}" height="48"></canvas></div>
+      </div>
+    </div>
+    <div class="action-row">
+      <span class="action-badge ${actCls}">${actLbl}</span>
+      <span class="card-age">born ${ago(t.born_at)}</span>
+    </div>
+    <div class="evidence-section">
+      <div class="evidence-toggle" onclick="toggleEvidence(${t.id})">
+        <div class="ev-count">
+          <span>Evidence</span>
+          ${forCount  ? `<span class="ev-pill for">▲ ${forCount} for</span>` : ''}
+          ${agstCount ? `<span class="ev-pill against">▼ ${agstCount} against</span>` : ''}
+          ${!forCount && !agstCount ? '<span style="color:var(--text3)">none yet</span>' : ''}
+        </div>
+        <span class="toggle-icon" id="ev-icon-${t.id}">▾</span>
+      </div>
+      <div class="evidence-list" id="ev-list-${t.id}">
+        ${evidenceHTML(t.evidence)}
+      </div>
+    </div>
+  </div>`;
 }
 
 async function refresh() {
   try {
-    await Promise.all([loadTheses(), loadStats()]);
-    const now = new Date().toLocaleTimeString();
-    document.getElementById('last-updated').textContent = `Last updated ${now}`;
+    const [theses, stats] = await Promise.all([
+      fetch('/api/theses').then(r => r.json()),
+      fetch('/api/stats').then(r => r.json()),
+    ]);
+
+    // Stats
+    document.getElementById('s-active').textContent  = stats.active_theses;
+    document.getElementById('s-high').textContent    = stats.high_conviction;
+    document.getElementById('s-evidence').textContent= stats.total_evidence;
+    document.getElementById('s-events').textContent  = stats.total_events;
+    document.getElementById('s-pending').textContent = stats.unprocessed_events;
+
+    // Theses
+    const grid = document.getElementById('thesis-grid');
+    if (!theses.length) {
+      grid.innerHTML = `<div class="empty-state"><h3>No theses yet</h3><p>The reasoning engine is processing events. Check back in a few minutes.</p></div>`;
+    } else {
+      grid.innerHTML = theses.map(cardHTML).join('');
+      theses.forEach(t => renderSpark(`sp-${t.id}`, t.history));
+    }
+
+    document.getElementById('last-update').textContent = `Updated ${new Date().toLocaleTimeString()}`;
   } catch(e) {
-    console.error('Refresh error:', e);
+    console.error(e);
   }
 }
 
-// Initial load + auto-refresh every 30s
 refresh();
 setInterval(refresh, 30000);
 </script>

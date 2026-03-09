@@ -51,7 +51,7 @@ def api_theses():
         # Get recent evidence
         evidence = conn.execute(
             """SELECT source, direction, content, logged_at FROM evidence
-               WHERE thesis_id=? ORDER BY logged_at DESC LIMIT 5""",
+               WHERE thesis_id=? ORDER BY logged_at DESC LIMIT 20""",
             (t["id"],)
         ).fetchall()
 
@@ -102,5 +102,5 @@ def api_stats():
 
 
 if __name__ == "__main__":
-    print("🎯 Alpha Hunter Dashboard → http://localhost:5050")
-    app.run(port=5050, debug=False)
+    print("🎯 Alpha Hunter Dashboard → http://192.168.68.120:5050")
+    app.run(host="0.0.0.0", port=5050, debug=False)
