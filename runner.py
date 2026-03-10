@@ -69,22 +69,22 @@ def morning_digest():
 
 
 def setup_schedule():
-    # Watch: every 15 minutes
-    schedule.every(15).minutes.do(watch_cycle)
+    # Watch: every 30 minutes
+    schedule.every(30).minutes.do(watch_cycle)
 
-    # Reddit: every 30 minutes
-    schedule.every(30).minutes.do(reddit_cycle)
+    # Reddit: every hour
+    schedule.every(1).hours.do(reddit_cycle)
 
-    # Reason: every 20 minutes (after watchers have had time to collect)
-    schedule.every(20).minutes.do(think_cycle)
+    # Deep 3-layer reasoning: every 4 hours
+    schedule.every(4).hours.do(think_cycle)
 
     # Daily digest: 6:30 AM PT (market pre-open)
     schedule.every().day.at("06:30").do(morning_digest)
 
     log.info("Schedule configured:")
-    log.info("  - News + Twitter: every 15 min")
-    log.info("  - Reddit: every 30 min")
-    log.info("  - Reasoning + Alerts: every 20 min")
+    log.info("  - News + Twitter: every 30 min")
+    log.info("  - Reddit: every 1 hour")
+    log.info("  - 3-layer reasoning: every 4 hours")
     log.info("  - Daily digest: 06:30 PT")
 
 

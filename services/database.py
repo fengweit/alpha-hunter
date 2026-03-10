@@ -519,3 +519,14 @@ def _ensure_raw_events_table(conn):
             received_at TEXT DEFAULT (datetime('now'))
         )
     """)
+
+
+def get_conviction_history(thesis_id: int) -> list:
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT conviction_after as conviction, recorded_at
+           FROM conviction_history WHERE thesis_id=? ORDER BY recorded_at ASC""",
+        (thesis_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
