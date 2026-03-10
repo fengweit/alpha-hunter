@@ -5,10 +5,15 @@ Live web UI showing all active theses, conviction curves, and evidence feed.
 
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from plays.database import (
+    init_db as init_plays_db, get_all_themes, get_positions,
+    get_theme_timeline, get_portfolio_summary, get_transactions,
+    refresh_prices
+)
 
 import json
 import sqlite3
-from flask import Flask, render_template, jsonify, Response
+from flask import Flask, render_template, jsonify, Response, request
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))
@@ -163,6 +168,55 @@ def api_stats():
     return jsonify(stats)
 
 
+@app.route("/plays")
+def plays():
+    return render_template("plays.html")
+
+
+@app.route("/api/plays/summary")
+def api_plays_summary():
+    return jsonify(get_portfolio_summary())
+
+
+@app.route("/api/plays/themes")
+def api_plays_themes():
+    themes = get_all_themes()
+    result = []
+    for t in themes:
+        positions = get_positions(t["id"])
+        timeline  = get_theme_timeline(t["id"])[:8]
+        result.append({**t,
+            "positions": positions,
+            "timeline": timeline,
+        })
+    return jsonify(result)
+
+
+@app.route("/api/plays/transactions")
+def api_plays_transactions():
+    return jsonify(get_transactions())
+
+
+@app.route("/api/plays/create-theme", methods=["POST"])
+def api_create_theme():
+    from plays.database import create_theme
+    data = request.get_json()
+    theme_id = create_theme(
+        name=data.get("name",""),
+        layer_a=data.get("layer_a",""),
+        layer_b=data.get("layer_b",""),
+        layer_c=data.get("layer_c",""),
+    )
+    return jsonify({"id": theme_id})
+
+
+@app.route("/api/plays/refresh-prices", methods=["POST"])
+def api_refresh_prices():
+    refresh_prices()
+    return jsonify({"ok": True})
+
+
 if __name__ == "__main__":
+    init_plays_db()
     print("🎯 Alpha Hunter Dashboard → http://192.168.68.120:5050")
     app.run(host="0.0.0.0", port=5050, debug=False)
